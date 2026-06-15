@@ -17,4 +17,13 @@ update:
   - platform: http_request
     name: None
     id: http_firmware_update
+    update_interval: never
     source: https://jhbruhn.github.io/omgiavc-firmware/firmware/omgiavc.manifest.json
+
+button:
+  - platform: template
+    name: "Check for Update"
+    entity_category: diagnostic
+    on_press:
+      - update.check:
+          id: http_firmware_update
