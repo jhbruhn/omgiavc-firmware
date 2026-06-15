@@ -2,7 +2,7 @@ substitutions:
   encoder_steps_per_rotation: "20"   # hardware: steps for a full 360° turn
   fan_speed_count: "100"             # fan API resolution (independent of encoder)
   fan_min_power: "0.1"               # minimum PWM duty cycle that spins the motor
-  led_brightness: "50%"
+  led_brightness: "0.5"             # 0.0–1.0
   led_r: "255"
   led_g: "255"
   led_b: "255"
@@ -14,16 +14,20 @@ esphome:
   project:
     name: jhbruhn.OMGIAVC
     version: v1.0.0
+  includes:
+    - natural_wind.h
   on_boot:
     priority: -100
     then:
-      - light.turn_on:
-          id: ring
-          brightness: ${led_brightness}
-          effect: "Fan Meter"
+      # Restore may not call turn_on_action on the switch, so sync here.
+      - lambda: |-
+          if (id(natural_mode)->state && id(motor)->state && !natural_wind.is_active())
+            natural_wind.activate();
+      - script.execute: set_led_state
 
 esp32:
   variant: esp32c6
+  flash_size: 8MB
   framework:
     type: esp-idf
 
@@ -51,13 +55,47 @@ output:
     frequency: 25000Hz
     min_power: ${fan_min_power}
 
+switch:
+  - platform: template
+    id: natural_mode
+    name: "Natural Wind"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - lambda: |-
+          if (id(motor)->state)
+            natural_wind.activate();
+      - script.execute: set_led_state
+    turn_off_action:
+      - lambda: |-
+          natural_wind.deactivate();
+          if (id(motor)->state)
+            id(fan_pwm)->set_level((float)id(motor)->speed / (float)${fan_speed_count});
+      - script.execute: set_led_state
+
 fan:
-  - platform: speed
+  - platform: template
     id: motor
     name: None
-    output: fan_pwm
     speed_count: ${fan_speed_count}
     restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_on:
+      - lambda: |-
+          if (id(natural_mode)->state) {
+            natural_wind.activate();
+          } else {
+            id(fan_pwm)->set_level((float)id(motor)->speed / (float)${fan_speed_count});
+          }
+      - script.execute: set_led_state
+    on_turn_off:
+      - lambda: |-
+          id(fan_pwm)->set_level(0.0f);
+          natural_wind.deactivate();
+      - script.execute: set_led_state
+    on_speed_set:
+      - lambda: |-
+          if (id(motor)->state && !id(natural_mode)->state)
+            id(fan_pwm)->set_level((float)x / (float)${fan_speed_count});
 
 light:
   - platform: esp32_rmt_led_strip
@@ -96,7 +134,21 @@ light:
                 it[i] = Color(0, 0, 0);
               }
             }
-
+      - addressable_lambda:
+          name: "Natural Wind"
+          update_interval: 16ms
+          lambda: |-
+            auto *f = id(motor);
+            float pct = f->state ? (f->speed / (float)${fan_speed_count}) : 0.0f;
+            float pos = pct * it.size();
+            int lit = (int)pos;
+            float frac = pos - lit;
+            float pulse = 0.7f + 0.3f * sinf((float)millis() / 600.0f);
+            for (int i = 0; i < it.size(); i++) {
+              if (i < lit)       it[i] = Color(0, (uint8_t)(255.0f * pulse), 0);
+              else if (i == lit) it[i] = Color(0, (uint8_t)(255.0f * pulse * frac), 0);
+              else               it[i] = Color(0, 0, 0);
+            }
 
 improv_serial:
 
@@ -122,10 +174,18 @@ esp32_improv:
           effect: "Improv Provisioning"
   on_provisioned:
     then:
-      - light.turn_on:
-          id: ring
-          brightness: ${led_brightness}
-          effect: "Fan Meter"
+      - script.execute: set_led_state
+
+interval:
+  - interval: 300ms
+    then:
+      - if:
+          condition:
+            lambda: "return natural_wind.is_active() && id(motor)->state;"
+          then:
+            - lambda: |-
+                int min_sp = (int)roundf((float)${fan_speed_count} * ${fan_min_power});
+                id(fan_pwm)->set_level(natural_wind.tick(id(motor)->speed, min_sp, ${fan_speed_count}));
 
 script:
   - id: adjust_fan_speed
@@ -149,6 +209,22 @@ script:
           call.set_speed(new_speed);
           call.perform();
 
+  - id: set_led_state
+    then:
+      - if:
+          condition:
+            lambda: "return natural_wind.is_active() && id(motor)->state;"
+          then:
+            - light.turn_on:
+                id: ring
+                brightness: ${led_brightness}
+                effect: "Natural Wind"
+          else:
+            - light.turn_on:
+                id: ring
+                brightness: ${led_brightness}
+                effect: "Fan Meter"
+
 binary_sensor:
   - platform: gpio
     pin:
@@ -159,11 +235,26 @@ binary_sensor:
     filters:
       - delayed_on: 10ms
       - delayed_off: 10ms
-    on_press:
-      then:
-        - fan.toggle: motor
+    on_click:
+      - min_length: 50ms
+        max_length: 700ms
+        then:
+          - fan.toggle: motor
+      - min_length: 800ms
+        max_length: 5000ms
+        then:
+          - switch.toggle: natural_mode
 
 sensor:
+  - platform: pulse_counter
+    pin: GPIO18
+    name: "Motor Speed"
+    entity_category: diagnostic
+    unit_of_measurement: "RPM"
+    update_interval: 5s
+    filters:
+      - multiply: 0.2
+
   - platform: rotary_encoder
     id: encoder
     pin_a:
@@ -186,4 +277,3 @@ sensor:
         - script.execute:
             id: adjust_fan_speed
             direction: -1
-
