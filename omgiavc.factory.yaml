@@ -1,6 +1,6 @@
 esphome:
   project:
-    version: "0.0.0"
+    version: dev # replaced at build time with the release tag by publish-firmware
 
 packages:
   core: !include omgiavc.yaml

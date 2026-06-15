@@ -1,0 +1,50 @@
+name: Build
+
+on:
+  pull_request:
+    paths:
+      - "*.yaml"
+      - "*.h"
+      - ".github/workflows/build.yml"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release tag to build (e.g. 1.2.3)
+        required: true
+  workflow_call:
+    inputs:
+      version:
+        description: Release tag to build
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-firmware:
+    name: Build Firmware
+    uses: esphome/workflows/.github/workflows/build.yml@2026.4.1
+    with:
+      files: |
+        omgiavc.factory.yaml
+      esphome-version: 2026.4.1
+
+      # `version` is empty on pull_request (CI build only) and set when called
+      # from release-please or dispatched manually (release build).
+      release-url: ${{ inputs.version != '' && format('{0}/{1}/releases/tag/{2}', github.server_url, github.repository, inputs.version) || '' }}
+      release-version: ${{ inputs.version }}
+
+  upload-to-release:
+    name: Upload to Release
+    if: inputs.version != ''
+    needs:
+      - build-firmware
+    uses: esphome/workflows/.github/workflows/upload-to-gh-release.yml@2026.4.1
+    with:
+      version: ${{ inputs.version }}
