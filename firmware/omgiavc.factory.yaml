@@ -22,7 +22,7 @@ update:
 
 button:
   - platform: template
-    name: "Check for Update"
+    name: "Check for Firmware Update"
     entity_category: config
     on_press:
       - update.check:
