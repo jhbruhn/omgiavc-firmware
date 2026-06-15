@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/jhbruhn/omgiavc-firmware/compare/1.0.2...1.0.3) (2026-06-15)
+
+
+### Bug Fixes
+
+* rename firmware update button ([84824c8](https://github.com/jhbruhn/omgiavc-firmware/commit/84824c832bf57b2be809911d58d64516284e4b6c))
+
 ## [1.0.2](https://github.com/jhbruhn/omgiavc-firmware/compare/1.0.1...1.0.2) (2026-06-15)
 
 
