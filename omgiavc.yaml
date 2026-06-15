@@ -2,7 +2,7 @@ substitutions:
   encoder_steps_per_rotation: "20"   # hardware: steps for a full 360° turn
   fan_speed_count: "100"             # fan API resolution (independent of encoder)
   fan_min_power: "0.1"               # minimum PWM duty cycle that spins the motor
-  led_brightness: "0.5"             # 0.0–1.0
+  led_brightness: "0.5"         
   led_r: "255"
   led_g: "255"
   led_b: "255"
@@ -262,11 +262,6 @@ sensor:
     pin_b:
       number: GPIO22
     restore_mode: RESTORE_DEFAULT_ZERO
-    on_value:
-      then:
-        - logger.log:
-            format: "Encoder: %.0f (%.1f deg)"
-            args: [x, "x * 360.0f / ${encoder_steps_per_rotation}"]
     on_clockwise:
       then:
         - script.execute:
