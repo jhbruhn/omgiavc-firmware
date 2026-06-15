@@ -3,8 +3,7 @@ name: Build
 on:
   pull_request:
     paths:
-      - "*.yaml"
-      - "*.h"
+      - "firmware/**"
       - ".github/workflows/build.yml"
   workflow_dispatch:
     inputs:
@@ -40,7 +39,7 @@ jobs:
     uses: esphome/workflows/.github/workflows/build.yml@2026.4.1
     with:
       files: |
-        omgiavc.factory.yaml
+        firmware/omgiavc.factory.yaml
       esphome-version: 2026.4.1
 
       # `version` is empty on pull_request (CI build only) and set when called

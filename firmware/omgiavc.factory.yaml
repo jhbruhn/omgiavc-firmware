@@ -6,7 +6,7 @@ packages:
   core: !include omgiavc.yaml
 
 dashboard_import:
-  package_import_url: github://jhbruhn/omgiavc-firmware/omgiavc.yaml@main
+  package_import_url: github://jhbruhn/omgiavc-firmware/firmware/omgiavc.yaml@main
 
 ota:
   - platform: http_request
