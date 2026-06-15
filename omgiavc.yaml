@@ -48,6 +48,12 @@ web_server:
   port: 80
   version: 3
 
+globals:
+  - id: improv_state
+    type: int
+    restore_value: false
+    initial_value: "0"  # 0=idle, 1=awaiting authorization, 2=provisioning
+
 output:
   - platform: ledc
     id: fan_pwm
@@ -156,24 +162,15 @@ esp32_improv:
   authorizer: encoder_button
   on_start:
     then:
-      - light.turn_on:
-          id: ring
-          brightness: ${led_brightness}
-          red: 0%
-          green: 0%
-          blue: 100%
-          effect: "Improv Awaiting"
+      - lambda: id(improv_state) = 1;
+      - script.execute: set_led_state
   on_provisioning:
     then:
-      - light.turn_on:
-          id: ring
-          brightness: ${led_brightness}
-          red: 0%
-          green: 0%
-          blue: 100%
-          effect: "Improv Provisioning"
+      - lambda: id(improv_state) = 2;
+      - script.execute: set_led_state
   on_provisioned:
     then:
+      - lambda: id(improv_state) = 0;
       - script.execute: set_led_state
 
 interval:
@@ -211,19 +208,21 @@ script:
 
   - id: set_led_state
     then:
-      - if:
-          condition:
-            lambda: "return natural_wind.is_active() && id(motor)->state;"
-          then:
-            - light.turn_on:
-                id: ring
-                brightness: ${led_brightness}
-                effect: "Natural Wind"
-          else:
-            - light.turn_on:
-                id: ring
-                brightness: ${led_brightness}
-                effect: "Fan Meter"
+      - lambda: |-
+          auto call = id(ring)->turn_on();
+          call.set_brightness(${led_brightness});
+          if (id(improv_state) == 1) {
+            call.set_red(0.0f); call.set_green(0.0f); call.set_blue(1.0f);
+            call.set_effect("Improv Awaiting");
+          } else if (id(improv_state) == 2) {
+            call.set_red(0.0f); call.set_green(0.0f); call.set_blue(1.0f);
+            call.set_effect("Improv Provisioning");
+          } else if (natural_wind.is_active() && id(motor)->state) {
+            call.set_effect("Natural Wind");
+          } else {
+            call.set_effect("Fan Meter");
+          }
+          call.perform();
 
 binary_sensor:
   - platform: gpio
