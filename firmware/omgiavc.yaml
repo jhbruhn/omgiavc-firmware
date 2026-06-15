@@ -253,6 +253,7 @@ sensor:
     update_interval: 5s
     filters:
       - multiply: 0.2
+      - delta: 5.0
 
   - platform: rotary_encoder
     id: encoder
