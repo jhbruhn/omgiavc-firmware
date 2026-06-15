@@ -1,0 +1,189 @@
+substitutions:
+  encoder_steps_per_rotation: "20"   # hardware: steps for a full 360° turn
+  fan_speed_count: "100"             # fan API resolution (independent of encoder)
+  fan_min_power: "0.1"               # minimum PWM duty cycle that spins the motor
+  led_brightness: "50%"
+  led_r: "255"
+  led_g: "255"
+  led_b: "255"
+
+esphome:
+  name: omgiavc
+  friendly_name: OMGIAVC
+  name_add_mac_suffix: true
+  project:
+    name: jhbruhn.OMGIAVC
+    version: v1.0.0
+  on_boot:
+    priority: -100
+    then:
+      - light.turn_on:
+          id: ring
+          brightness: ${led_brightness}
+          effect: "Fan Meter"
+
+esp32:
+  variant: esp32c6
+  framework:
+    type: esp-idf
+
+logger:
+
+api:
+
+ota:
+  - platform: esphome
+
+wifi:
+  power_save_mode: NONE
+  ap:
+
+captive_portal:
+
+web_server:
+  port: 80
+  version: 3
+
+output:
+  - platform: ledc
+    id: fan_pwm
+    pin: GPIO10
+    frequency: 25000Hz
+    min_power: ${fan_min_power}
+
+fan:
+  - platform: speed
+    id: motor
+    name: None
+    output: fan_pwm
+    speed_count: ${fan_speed_count}
+    restore_mode: RESTORE_DEFAULT_OFF
+
+light:
+  - platform: esp32_rmt_led_strip
+    id: ring
+    internal: true
+    rgb_order: GRB
+    chipset: SK6812
+    pin: GPIO21
+    num_leds: 11
+    effects:
+      - pulse:
+          name: "Improv Awaiting"
+          transition_length: 1s
+          min_brightness: 0%
+          max_brightness: 100%
+      - pulse:
+          name: "Improv Provisioning"
+          transition_length: 250ms
+          min_brightness: 0%
+          max_brightness: 100%
+      - addressable_lambda:
+          name: "Fan Meter"
+          update_interval: 50ms
+          lambda: |-
+            auto *f = id(motor);
+            float pct = f->state ? (f->speed / (float)${fan_speed_count}) : 0.0f;
+            float pos = pct * it.size();
+            int lit = (int)pos;
+            float frac = pos - lit;
+            for (int i = 0; i < it.size(); i++) {
+              if (i < lit) {
+                it[i] = Color(${led_r}, ${led_g}, ${led_b});
+              } else if (i == lit) {
+                it[i] = Color((uint8_t)(${led_r} * frac), (uint8_t)(${led_g} * frac), (uint8_t)(${led_b} * frac));
+              } else {
+                it[i] = Color(0, 0, 0);
+              }
+            }
+
+
+improv_serial:
+
+esp32_improv:
+  authorizer: encoder_button
+  on_start:
+    then:
+      - light.turn_on:
+          id: ring
+          brightness: ${led_brightness}
+          red: 0%
+          green: 0%
+          blue: 100%
+          effect: "Improv Awaiting"
+  on_provisioning:
+    then:
+      - light.turn_on:
+          id: ring
+          brightness: ${led_brightness}
+          red: 0%
+          green: 0%
+          blue: 100%
+          effect: "Improv Provisioning"
+  on_provisioned:
+    then:
+      - light.turn_on:
+          id: ring
+          brightness: ${led_brightness}
+          effect: "Fan Meter"
+
+script:
+  - id: adjust_fan_speed
+    parameters:
+      direction: int
+    then:
+      - lambda: |-
+          int step = (int)roundf(${fan_speed_count} * 360.0f / (270.0f * ${encoder_steps_per_rotation}));
+          int min_speed = (int)roundf(${fan_speed_count} * ${fan_min_power});
+          if (!id(motor).state) {
+            if (direction > 0) {
+              auto call = id(motor).turn_on();
+              call.set_speed(min_speed);
+              call.perform();
+            }
+            return;
+          }
+          int new_speed = std::max(id(motor).speed + direction * step, min_speed);
+          new_speed = std::min(new_speed, ${fan_speed_count});
+          auto call = id(motor).turn_on();
+          call.set_speed(new_speed);
+          call.perform();
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO9
+      inverted: true
+    id: encoder_button
+    internal: true
+    filters:
+      - delayed_on: 10ms
+      - delayed_off: 10ms
+    on_press:
+      then:
+        - fan.toggle: motor
+
+sensor:
+  - platform: rotary_encoder
+    id: encoder
+    pin_a:
+      number: GPIO23
+    pin_b:
+      number: GPIO22
+    restore_mode: RESTORE_DEFAULT_ZERO
+    on_value:
+      then:
+        - logger.log:
+            format: "Encoder: %.0f (%.1f deg)"
+            args: [x, "x * 360.0f / ${encoder_steps_per_rotation}"]
+    on_clockwise:
+      then:
+        - script.execute:
+            id: adjust_fan_speed
+            direction: 1
+    on_anticlockwise:
+      then:
+        - script.execute:
+            id: adjust_fan_speed
+            direction: -1
+
