@@ -11,10 +11,18 @@ on:
       version:
         description: Release tag to build (e.g. 1.2.3)
         required: true
+      summary:
+        description: Release summary shown in the update entity
+        required: false
   workflow_call:
     inputs:
       version:
         description: Release tag to build
+        required: false
+        type: string
+        default: ""
+      summary:
+        description: Release summary shown in the update entity
         required: false
         type: string
         default: ""
@@ -39,6 +47,7 @@ jobs:
       # from release-please or dispatched manually (release build).
       release-url: ${{ inputs.version != '' && format('{0}/{1}/releases/tag/{2}', github.server_url, github.repository, inputs.version) || '' }}
       release-version: ${{ inputs.version }}
+      release-summary: ${{ inputs.summary }}
 
   upload-to-release:
     name: Upload to Release
