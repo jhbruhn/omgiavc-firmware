@@ -1,0 +1,20 @@
+esphome:
+  project:
+    version: "0.0.0"
+
+packages:
+  core: !include omgiavc.yaml
+
+dashboard_import:
+  package_import_url: github://jhbruhn/omgiavc-firmware/omgiavc.yaml@main
+
+ota:
+  - platform: http_request
+
+http_request:
+
+update:
+  - platform: http_request
+    name: None
+    id: http_firmware_update
+    source: https://jhbruhn.github.io/omgiavc-firmware/firmware/omgiavc.manifest.json
