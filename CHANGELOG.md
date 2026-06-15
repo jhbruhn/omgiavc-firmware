@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.1](https://github.com/jhbruhn/omgiavc-firmware/compare/1.0.0...1.0.1) (2026-06-15)
+
+
+### Bug Fixes
+
+* include release notes in manifest ([ca3be65](https://github.com/jhbruhn/omgiavc-firmware/commit/ca3be658ebb3231ee0fab127cffd1c8a19bef106))
+* set jekyll base url ([4ac5fa6](https://github.com/jhbruhn/omgiavc-firmware/commit/4ac5fa6b2a32252957976b1e686c03611514883d))
+
 ## 1.0.0 (2026-06-15)
 
 
