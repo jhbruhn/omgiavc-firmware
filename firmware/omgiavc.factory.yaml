@@ -23,7 +23,7 @@ update:
 button:
   - platform: template
     name: "Check for Update"
-    entity_category: diagnostic
+    entity_category: config
     on_press:
       - update.check:
           id: http_firmware_update
