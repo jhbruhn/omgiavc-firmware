@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.2](https://github.com/jhbruhn/omgiavc-firmware/compare/1.0.1...1.0.2) (2026-06-15)
+
+
+### Bug Fixes
+
+* filter motor speed counter with delta to avoid many datapoints in DB ([5e4ebea](https://github.com/jhbruhn/omgiavc-firmware/commit/5e4ebea90b8d635db354cc59d5226611af2ed3b9))
+* move OTA button to config ([3ce0c7a](https://github.com/jhbruhn/omgiavc-firmware/commit/3ce0c7a814ed1a3837fa7aa1110e0da60a60f820))
+
 ## [1.0.1](https://github.com/jhbruhn/omgiavc-firmware/compare/1.0.0...1.0.1) (2026-06-15)
 
 
