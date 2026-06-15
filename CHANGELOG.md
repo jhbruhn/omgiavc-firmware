@@ -1,0 +1,15 @@
+# Changelog
+
+## 1.0.0 (2026-06-15)
+
+
+### Features
+
+* add firmware build workflow ([f3dd248](https://github.com/jhbruhn/omgiavc-firmware/commit/f3dd2485c1abee2652e308dc1454ad44a1509450))
+* add natural wind mode, tacho ([e9e75cb](https://github.com/jhbruhn/omgiavc-firmware/commit/e9e75cb048212cc5f865427105af226475a1e814))
+* only check for updates manually ([9648898](https://github.com/jhbruhn/omgiavc-firmware/commit/96488987a6275b058628ef2c4b3cfeac29418cc0))
+
+
+### Bug Fixes
+
+* remove unused code ([5dbaf52](https://github.com/jhbruhn/omgiavc-firmware/commit/5dbaf528a6de7c02dbbe66959a36f61007d2cc5d))
