@@ -53,6 +53,6 @@ jobs:
     if: inputs.version != ''
     needs:
       - build-firmware
-    uses: esphome/workflows/.github/workflows/upload-to-gh-release.yml@2026.4.1
+    uses: esphome/workflows/.github/workflows/upload-to-gh-release.yml@2026.8.1
     with:
       version: ${{ inputs.version }}
